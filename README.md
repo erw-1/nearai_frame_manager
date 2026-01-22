@@ -55,7 +55,7 @@ pip install piexif
 2. Build per-image records (EXIF + CSV overrides + acquisition date).
 3. Write images, annotations, poses, and calibration outputs.
 
-## Command Examples
+## Command Examples, also works with the .exe
 
 ### 1) Interactive multi-folder mode (raw data root with several aquisition folders): auto sensor, pose csv and lidar detection per folder
 ```
@@ -82,7 +82,7 @@ python run.py "./test_data/hsn/20250423_C02" --region HSN --sensor auto --max-pe
 - `--lidar-path`        LiDAR file path: `auto` will look for .las or .laz.
 - `--pose-epoch`        Pose time epoch: `gps`(default) or `unix`.
 - `--max-per-seq`       Sequence size (default 2000).
-- `--no-gui`            Disable the folder picker.
+- `--no-gui`            Replaces the tk folder picker with CLI, if input_dir is empty.
 
 ## Build EXE for your less technical colleagues
 
@@ -90,4 +90,4 @@ python run.py "./test_data/hsn/20250423_C02" --region HSN --sensor auto --max-pe
 pip install piexif pyinstaller
 pyinstaller --onefile --name nearai_frame_manager --console run.py
 ```
-Or download it from GitHub Releases.
+Or [download it from GitHub Releases](https://github.com/erw-1/nearai_frame_manager/releases/tag/v0.1.0-beta.1).
