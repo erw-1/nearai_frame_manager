@@ -1,13 +1,13 @@
 # NearAI Frame Manager
 
-CLI entrypoint `run.py` (or `python -m nearai_frame_manager`)
-organizes raw image collections
+CLI entrypoint `run.py` or `python -m nearai_frame_manager`  
+Organizes raw 360° image collections
 into the NearAI acquisition layout, extracts EXIF metadata, optionally merges
 pose CSV data, and copies LiDAR files.
 
 ## Assumptions
 
-- Input is raw data only (no previously generated outputs).
+- Input is unprocessed data only (jpg, csv, las/laz).
 - Image filenames are unique across the input tree.
 - LiDAR files belong to the same folder/subfolders as their images.
 
@@ -55,23 +55,21 @@ pip install piexif
 2. Build per-image records (EXIF + CSV overrides + acquisition date).
 3. Write images, annotations, poses, and calibration outputs.
 
-
 ## Command Examples
 
-### 1) Interactive multi-folder mode (raw data root with several aquisitions)
+### 1) Interactive multi-folder mode (raw data root with several aquisition folders): auto sensor, pose csv and lidar detection per folder
 ```
 python run.py
 ```
 
-### 2) Single acquisition with output + CSV + LiDAR
+### 2) Single acquisition folder with output + CSV + LiDAR
 ```
-python run.py <raw_folder> --region HSN --sensor GoProMax \
-  --output-dir <output_root> --pose-csv <poses.csv> --pose-epoch gps --lidar-path <lidar_folder>
+python run.py "./test_data/neocapture/voiteur" --region NeoCapture --sensor auto --pose-csv auto --lidar-path auto --output-dir "./out"
 ```
 
 ### 3) Single acquisition with custom sequence size
 ```
-python run.py <raw_folder> --region HSN --sensor GoProMax --max-per-seq 10000
+python run.py "./test_data/hsn/20250423_C02" --region HSN --sensor auto --max-per-seq 10000
 ```
 
 ## Arguments
