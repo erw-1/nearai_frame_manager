@@ -5,6 +5,10 @@ Organizes raw 360° image collections
 into the NearAI acquisition layout, extracts EXIF metadata, optionally merges
 pose CSV data, and copies LiDAR files.
 
+```
+git clone https://github.com/erw-1/nearai_frame_manager
+```
+
 ## Assumptions
 
 - Input is unprocessed data only (jpg, csv, las/laz).
