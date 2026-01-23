@@ -2,8 +2,8 @@
 
 CLI entrypoint `run.py` or `python -m nearai_frame_manager`  
 Organizes raw 360° image collections
-into the NearAI acquisition layout, extracts EXIF metadata, optionally merges
-pose CSV data, and copies LiDAR files.
+into the NearAI acquisition layout, extracts EXIF metadata, merges
+pose CSV data, and copies LiDAR files when they are found.
 
 ```
 git clone https://github.com/erw-1/nearai_frame_manager
