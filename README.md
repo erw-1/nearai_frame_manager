@@ -13,7 +13,7 @@ git clone https://github.com/erw-1/nearai_frame_manager
 
 - Input is unprocessed data only (jpg, csv, las/laz).
 - Image filenames are unique across the input tree.
-- LiDAR files belong to the same folder/subfolders as their images.
+- Optional Pose CSV and LiDAR files belong to the same folder/subfolders as their images.
 
 ## Outputs
 
