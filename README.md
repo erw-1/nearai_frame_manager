@@ -62,7 +62,7 @@ pip install piexif
 
 ## Command Examples, also works with the .exe
 
-### 1) Interactive multi-folder mode (raw data root with several aquisition folders): auto sensor, pose csv and lidar detection per folder
+### 1) Interactive multi-folder mode (best for raw data root with several aquisition folders): auto sensor, pose csv and lidar detection per folder
 ```
 python run.py
 ```
@@ -77,10 +77,10 @@ python run.py "./test_data/neocapture/voiteur" --region NeoCapture --sensor auto
 python run.py "./test_data/hsn/20250423_C02" --region HSN --sensor auto --max-per-seq 10000
 ```
 
-## Arguments
+## Arguments, all optional
 
 - `input_dir`           Input folder (if omitted, a picker/prompt is used).
-- `--region`            Acquisition region/owner/org tag.
+- `--region`            Acquisition region/owner/org tag. Only use when processing data from the same region/org.
 - `--sensor`            Sensor label (e.g., GoProMax). `auto` uses metadata.
 - `--output-dir`        Output root (default: repo root or exe folder).
 - `--pose-csv`          Pose CSV path: `auto` will look for a .csv.
