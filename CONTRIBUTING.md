@@ -9,13 +9,6 @@ Thanks for helping improve the NearAI frame manager! PRs and forks are welcome.
 - Add or update docs when you change CLI behavior.
 - Run a small sample dataset before submitting a PR.
 
-## Development
-
-```
-pip install piexif
-python run_nearai_frame_manager.py --help
-```
-
 ## Pull Requests
 
 1. Open an issue or explain the change in the PR description.
