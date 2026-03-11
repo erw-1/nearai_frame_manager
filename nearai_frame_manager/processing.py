@@ -1,5 +1,8 @@
 """Core processing for acquisition outputs."""
+from datetime import datetime, timezone
+import math
 import os
+import re
 import shutil
 from typing import Any
 
@@ -10,12 +13,52 @@ from .io_utils import copy_lidar_assets, write_json, write_trajectory_csv
 from .models import PoseLookup, Record
 
 
-def record_sort_key(record: Record) -> tuple[int, float, str]:
-    """Sort key: prefer CSV GPS time, then file mtime."""
-    csv_pose = record.get("csv_pose")
-    if csv_pose and csv_pose.get("gps_seconds") is not None:
-        return (0, float(csv_pose["gps_seconds"]), record["src"])
-    return (1, record["mtime"], record["src"])
+def parse_sort_timestamp(value: Any) -> float | None:
+    """Parse an ISO-like timestamp into epoch seconds."""
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def image_number_hint(name: str) -> int:
+    """Extract trailing digits from an image basename for tie-breaking."""
+    stem = os.path.splitext(name)[0]
+    match = re.search(r"(\d+)$", stem)
+    if not match:
+        return -1
+    return int(match.group(1))
+
+
+def capture_time_seconds(record: Record) -> float:
+    """Return best-effort capture time in epoch seconds for sorting."""
+    csv_pose = record.get("csv_pose") or {}
+    for candidate in (
+        csv_pose.get("timestamp"),
+        record.get("derived", {}).get("gps", {}).get("timestamp_utc"),
+        record.get("derived", {}).get("datetime_original"),
+    ):
+        parsed = parse_sort_timestamp(candidate)
+        if parsed is not None:
+            return parsed
+    return float(record["mtime"])
+
+
+def record_sort_key(record: Record) -> tuple[float, int, str]:
+    """Sort key: best-effort chronological order, then filename/path stability."""
+    return (
+        capture_time_seconds(record),
+        image_number_hint(record["original_name"]),
+        record["src"],
+    )
 
 
 def choose_acquisition_date(default_date: str, csv_pose: dict[str, Any] | None) -> str:
@@ -208,8 +251,75 @@ def build_geojson_track(
         "sensor_id": sensor_id,
         "point_count": len(coordinates),
     }
-    if include_alt:
-        properties["altitude_units"] = "meters"
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": properties,
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": coordinates,
+                },
+            }
+        ],
+    }
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return great-circle distance between points in kilometers."""
+    earth_radius_km = 6371.0088
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = lat2_rad - lat1_rad
+    delta_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_lat / 2.0) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2.0) ** 2
+    )
+    return 2.0 * earth_radius_km * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+
+
+def build_full_geojson_track(
+    rows: list[dict[str, Any]],
+    acquisition_id: str,
+    sensor_id: str,
+) -> dict[str, Any] | None:
+    """Build a full-acquisition GeoJSON LineString with distance and frame stats."""
+    positions: list[tuple[float, float, float | None]] = []
+    alt_count = 0
+    for row in rows:
+        lat = parse_float(row.get("gps_latitude"))
+        lon = parse_float(row.get("gps_longitude"))
+        alt = parse_float(row.get("gps_altitude_m"))
+        if lat is None or lon is None:
+            continue
+        positions.append((lon, lat, alt))
+        if alt is not None:
+            alt_count += 1
+    if len(positions) < 2:
+        return None
+
+    total_length_km = 0.0
+    for idx in range(1, len(positions)):
+        prev_lon, prev_lat, _ = positions[idx - 1]
+        curr_lon, curr_lat, _ = positions[idx]
+        total_length_km += haversine_km(prev_lat, prev_lon, curr_lat, curr_lon)
+
+    include_alt = alt_count == len(positions)
+    coordinates: list[list[float]] = []
+    for lon, lat, alt in positions:
+        if include_alt and alt is not None:
+            coordinates.append([lon, lat, alt])
+        else:
+            coordinates.append([lon, lat])
+
+    properties: dict[str, Any] = {
+        "acquisition_id": acquisition_id,
+        "sensor_id": sensor_id,
+        "point_count": len(coordinates),
+        "length_km": round(total_length_km),
+    }
     return {
         "type": "FeatureCollection",
         "features": [
@@ -253,6 +363,7 @@ def process_acquisition(
     copied = 0
     poses_by_sequence: dict[str, list[dict[str, Any]]] = {}
     sequences_with_pose: set[str] = set()
+    all_pose_rows: list[dict[str, Any]] = []
     sequence_dirs: dict[str, tuple[str, str]] = {}
     current_sequence: str | None = None
     current_count = 0
@@ -292,6 +403,7 @@ def process_acquisition(
 
         pose_entry = build_pose_entry(info, frame_index, os.path.basename(dest_path))
         poses_by_sequence.setdefault(sequence_id, []).append(pose_entry)
+        all_pose_rows.append(pose_entry)
         if pose_has_data(pose_entry):
             sequences_with_pose.add(sequence_id)
         copied += 1
@@ -309,6 +421,10 @@ def process_acquisition(
         if geojson_payload:
             geojson_path = os.path.join(poses_root, f"{sequence_id}_trajectory.geojson")
             write_json(geojson_path, geojson_payload)
+    full_geojson_payload = build_full_geojson_track(all_pose_rows, acquisition_id, sensor_id)
+    if full_geojson_payload:
+        full_geojson_path = os.path.join(poses_root, f"{acquisition_id}_full_trajectory.geojson")
+        write_json(full_geojson_path, full_geojson_payload)
     return copied
 
 
