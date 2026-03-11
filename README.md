@@ -15,7 +15,7 @@ git clone https://github.com/erw-1/nearai_frame_manager
 - Image filenames are unique across the input tree.
 - Optional Pose CSV and LiDAR files belong to the same folder/subfolders as their images.
 
-## Outputs
+## Output
 
 ```
 <output_dir>/
@@ -25,9 +25,10 @@ git clone https://github.com/erw-1/nearai_frame_manager
         <AcquisitionID>_S001_<SensorID>_000001.jpg
         ...
     02_poses/
+      <AcquisitionID>_full_trajectory.geojson
       S001_trajectory.csv
+      S001_trajectory.geojson (line geodata)
       coordinate_systems.json
-      S001_trajectory.geojson (line geodata) 
     03_calibration/
       intrinsics.json
     04_annotations/
