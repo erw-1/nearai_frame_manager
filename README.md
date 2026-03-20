@@ -96,4 +96,4 @@ python run.py "./test_data/hsn/20250423_C02" --region HSN --sensor auto --max-pe
 pip install piexif pyinstaller
 pyinstaller --onefile --name nearai_frame_manager --console run.py
 ```
-Or [download it from GitHub Releases](https://github.com/erw-1/nearai_frame_manager/releases/tag/v0.1.0-beta.1).
+Or [download it from GitHub Releases](https://github.com/erw-1/nearai_frame_manager/releases/).
